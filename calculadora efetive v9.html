@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise de Viabilidade — Leilões Efetive</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0a0f1a;--ink2:#111827;
+  --surface:#fff;--surface2:#f8f7f4;--surface3:#f2f0eb;
+  --border:#e5e0d8;--border2:#d4cfc6;
+  --muted:#8a8478;--text:#1a1714;--text2:#4a4540;
+  --gold:#c9971a;--gold2:#e5b84a;--gold3:#f5cc6a;--gold-dim:#7a5c0e;
+  --gold-pale:#fdf6e3;--gold-pale2:#fef9ed;
+  --teal:#0d7a6e;--teal2:#0a6058;--teal-bg:#e6f4f2;--teal-bd:#1aada0;
+  --green:#1a6b10;--green-bg:#e8f5e0;--green-bd:#3d9420;
+  --amber:#7a4800;--amber-bg:#fef0d0;--amber-bd:#c07800;
+  --red:#8b1010;--red-bg:#fdf0f0;--red-bd:#cc2020;
+  --blue:#1e3fa0;--blue-bg:#eef3ff;--blue-bd:#4a7de8;
+  --r4:4px;--r8:8px;--r12:12px;--r16:16px;--r24:24px;
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 16px rgba(0,0,0,0.06);
+  --shadow-md:0 4px 24px rgba(0,0,0,0.10);
+  --shadow-gold:0 4px 20px rgba(201,151,26,0.35);
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",system-ui,sans-serif;background:var(--surface3);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+.topbar{background:var(--ink);border-bottom:1px solid rgba(255,255,255,0.06);position:sticky;top:0;z-index:400}
+.tb-inner{max-width:960px;margin:0 auto;padding:0 28px;height:60px;display:flex;align-items:center;gap:18px}
+.logo-img{height:40px;width:auto;filter:drop-shadow(0 1px 8px rgba(0,0,0,0.6))}
+.tb-div{width:1px;height:28px;background:rgba(255,255,255,0.08)}
+.tb-title{font-size:13px;font-weight:600;color:rgba(255,255,255,0.75)}
+.tb-sub{font-size:11px;color:rgba(255,255,255,0.3);margin-top:1px}
+.tb-pill{margin-left:auto;background:rgba(201,151,26,0.15);border:1px solid rgba(201,151,26,0.3);color:var(--gold2);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:0.5px}
+
+.hero{background:var(--ink);padding:42px 28px 38px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;top:-120px;right:-80px;width:500px;height:500px;background:radial-gradient(circle,rgba(201,151,26,0.06) 0%,transparent 65%)}
+.hero::after{content:"";position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,151,26,0.4),rgba(229,184,74,0.6),rgba(201,151,26,0.4),transparent)}
+.hero-inner{max-width:960px;margin:0 auto;position:relative}
+.hero-tag{display:inline-flex;align-items:center;gap:7px;background:rgba(201,151,26,0.1);border:1px solid rgba(201,151,26,0.2);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;color:var(--gold2);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:16px}
+.hero-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--gold2);box-shadow:0 0 8px rgba(229,184,74,0.8)}
+.hero h1{font-size:30px;font-weight:900;color:#fff;letter-spacing:-0.6px;line-height:1.15;margin-bottom:10px}
+.hero h1 em{color:var(--gold2);font-style:normal}
+.hero-desc{font-size:14px;color:rgba(255,255,255,0.42);max-width:540px;line-height:1.65}
+
+.page{max-width:960px;margin:0 auto;padding:24px 24px 80px}
+
+.snav{display:flex;gap:0;margin-bottom:22px;background:var(--surface);border-radius:var(--r12);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
+.sn{flex:1;display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;transition:background .15s;border-right:1px solid var(--border);position:relative}
+.sn:last-child{border-right:none}
+.sn.done{background:#f7faf3}
+.sn.active{background:linear-gradient(135deg,rgba(201,151,26,0.06),rgba(201,151,26,0.03))}
+.sn.active::after{content:"";position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold)}
+.sn-c{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;border:2px solid var(--border2);background:var(--surface);color:var(--muted);transition:all .2s}
+.sn.active .sn-c{background:var(--gold);border-color:var(--gold);color:#fff;box-shadow:0 0 0 3px rgba(201,151,26,0.15)}
+.sn.done .sn-c{background:var(--ink);border-color:var(--ink);color:#fff}
+.sn-l{font-size:11.5px;font-weight:700;color:var(--muted);line-height:1.3}
+.sn-s{font-size:10px;color:var(--muted);font-weight:400;margin-top:1px;opacity:0.7}
+.sn.active .sn-l{color:var(--gold-dim)}.sn.done .sn-l{color:var(--ink)}
+
+.card{background:var(--surface);border-radius:var(--r16);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.card-hd{padding:22px 26px 0}.card-bd{padding:20px 26px 26px}
+.sec{display:none}.sec.vis{display:block}
+
+.etapa-strip{background:var(--ink2);border-radius:var(--r10);padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;border:1px solid rgba(255,255,255,0.06)}
+.en-num{width:34px;height:34px;border-radius:50%;background:var(--gold);color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:var(--shadow-gold)}
+.en-tag{font-size:10px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.8px}
+.en-title{font-size:15px;font-weight:800;color:#fff;margin-top:1px}
+.en-sub{font-size:11px;color:rgba(255,255,255,0.38);margin-top:2px}
+
+.slbl{display:flex;align-items:center;gap:10px;margin:20px 0 13px;font-size:9.5px;font-weight:900;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px}
+.slbl::before,.slbl::after{content:"";flex:1;height:1px;background:var(--border)}
+
+.mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.mode-btn{border:1.5px solid var(--border2);border-radius:var(--r12);padding:16px 18px;cursor:pointer;transition:all .2s;background:var(--surface2);text-align:left;font-family:inherit}
+.mode-btn:hover{border-color:var(--gold);background:var(--gold-pale2)}
+.mode-btn.active{border-color:var(--gold);background:linear-gradient(135deg,var(--ink),var(--ink2));box-shadow:var(--shadow-gold)}
+.mb-icon{font-size:26px;display:block;margin-bottom:8px}
+.mb-title{font-size:14px;font-weight:800;color:var(--text2);display:block}
+.mb-sub{font-size:11.5px;color:var(--muted);display:block;margin-top:3px;line-height:1.4}
+.mode-btn.active .mb-title{color:var(--gold2)}.mode-btn.active .mb-sub{color:rgba(255,255,255,0.45)}
+
+.fin-box{background:linear-gradient(135deg,#eef3ff,#e8eeff);border:1.5px solid rgba(74,125,232,0.2);border-radius:var(--r12);padding:18px 20px;margin-bottom:14px}
+.fin-box-hd{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.8px;color:var(--blue);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.fin-box-hd::after{content:"";flex:1;height:1px;background:rgba(74,125,232,0.18)}
+
+.parc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 14px}
+.pi{border:1.5px solid var(--border2);border-radius:var(--r10);padding:11px 8px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface)}
+.pi:hover{border-color:var(--gold);background:var(--gold-pale)}
+.pi.sel{border-color:var(--gold);background:var(--gold);box-shadow:0 2px 10px rgba(201,151,26,0.4)}
+.pi.sel .pi-n,.pi.sel .pi-s{color:#fff}
+.pi-n{font-size:15px;font-weight:900;color:var(--ink);display:block}
+.pi-s{font-size:10px;color:var(--muted);display:block;margin-top:2px}
+
+.sw-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--surface2);border-radius:var(--r10);border:1.5px solid var(--border2);margin-bottom:13px;cursor:pointer;transition:all .15s}
+.sw-row:hover{border-color:var(--gold)}
+.sw-row.on{border-color:var(--green-bd);background:var(--green-bg)}
+.sw-t{font-size:13px;font-weight:700;color:var(--text)}
+.sw-s{font-size:11px;color:var(--muted);margin-top:2px}
+.sw-row.on .sw-t{color:var(--green)}
+.sw-knob{width:42px;height:24px;border-radius:12px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0}
+.sw-knob::after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+.sw-row.on .sw-knob{background:var(--green-bd)}.sw-row.on .sw-knob::after{left:20px}
+
+.note{border-radius:0 var(--r8) var(--r8) 0;padding:11px 15px;font-size:12.5px;color:var(--text2);margin-bottom:14px;line-height:1.65;border-left:3px solid}
+.note strong{font-weight:700}
+.note.gold{background:var(--gold-pale2);border:1px solid rgba(201,151,26,0.18);border-left:3px solid var(--gold)}
+.note.gold strong{color:var(--gold-dim)}
+.note.blue{background:var(--blue-bg);border:1px solid rgba(74,125,232,0.15);border-left:3px solid var(--blue-bd)}
+.note.blue strong{color:var(--blue)}
+.note.teal{background:var(--teal-bg);border:1px solid rgba(26,173,160,0.18);border-left:3px solid var(--teal-bd)}
+.note.teal strong{color:var(--teal2)}
+.note.green{background:var(--green-bg);border:1px solid rgba(61,148,32,0.2);border-left:3px solid var(--green-bd)}
+.note.green strong{color:var(--green)}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:13px}
+.g1{margin-bottom:13px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:5px}
+.req{color:var(--gold);font-size:13px;line-height:1}
+.opt{color:var(--border2);font-weight:400;font-size:10px}
+.iw{position:relative}
+.pfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--muted);pointer-events:none}
+.sfx{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted);pointer-events:none}
+.pl{padding-left:34px!important}.pr{padding-right:34px!important}
+.field input,.field select{width:100%;padding:10px 12px;font-size:13.5px;border:1.5px solid var(--border2);border-radius:var(--r8);background:var(--surface2);color:var(--text);transition:all .15s;font-family:inherit;-webkit-appearance:none}
+.field input:hover,.field select:hover{border-color:rgba(201,151,26,0.5);background:#fffdf5}
+.field input:focus,.field select:focus{outline:none;border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,151,26,0.10)}
+.field input::placeholder{color:var(--border2)}
+.field input[readonly]{background:#f4f2ee;color:var(--muted);cursor:default;border-style:dashed;font-weight:700}
+.fhint{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.4}
+
+.total-bar{background:var(--ink);border-radius:var(--r10);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:16px;border:1px solid rgba(255,255,255,0.05)}
+.tb-lbl{font-size:10px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.6px}
+.tb-sub2{font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px}
+.tb-val{font-size:22px;font-weight:900;color:var(--gold2);line-height:1}
+
+.doc-box{background:linear-gradient(135deg,#f0faf5,#e6f5ec);border:1.5px solid rgba(61,148,32,0.2);border-radius:var(--r12);padding:16px 18px;margin-bottom:14px}
+.doc-hd{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.8px;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.doc-hd::after{content:"";flex:1;height:1px;background:rgba(61,148,32,0.18)}
+
+.nav-row{display:flex;gap:10px;justify-content:flex-end;padding:14px 26px 18px;border-top:1px solid var(--border);background:var(--surface2)}
+.btn-back{padding:9px 18px;font-size:12.5px;border-radius:var(--r8);border:1.5px solid var(--border2);cursor:pointer;background:var(--surface);color:var(--text2);font-weight:600;font-family:inherit;transition:all .15s}
+.btn-back:hover{border-color:var(--ink);color:var(--ink)}
+.btn-fwd{padding:10px 24px;font-size:13px;border-radius:var(--r8);border:none;cursor:pointer;background:var(--ink);color:#fff;font-weight:700;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn-fwd:hover{background:var(--ink2);transform:translateY(-1px);box-shadow:0 4px 14px rgba(10,15,26,0.3)}
+.btn-calc{padding:11px 28px;font-size:13px;border-radius:var(--r8);border:none;cursor:pointer;background:linear-gradient(135deg,var(--gold),#9a6c08);color:#fff;font-weight:900;font-family:inherit;box-shadow:var(--shadow-gold);transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn-calc:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,151,26,0.55)}
+
+/* RESULT */
+.res-hero{background:var(--ink);border-radius:var(--r16);border:1px solid rgba(201,151,26,0.15);padding:22px 26px;margin-bottom:16px;position:relative;overflow:hidden}
+.res-hero::before{content:"";position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),var(--gold2),var(--gold),transparent)}
+.rh-tag{font-size:10px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px}
+.rh-imovel{font-size:17px;font-weight:800;color:#fff;margin-bottom:14px}
+.rh-meta{display:flex;gap:16px;flex-wrap:wrap}
+.rh-meta-item{font-size:11px;color:rgba(255,255,255,0.4);display:flex;align-items:center;gap:5px}
+.rh-meta-item strong{color:rgba(255,255,255,0.65)}
+
+.verdict{border-radius:var(--r12);padding:16px 20px;margin-bottom:18px;display:flex;align-items:flex-start;gap:14px;border:1.5px solid}
+.verdict.green{background:var(--green-bg);border-color:var(--green-bd)}
+.verdict.amber{background:var(--amber-bg);border-color:var(--amber-bd)}
+.verdict.red{background:var(--red-bg);border-color:var(--red-bd)}
+.vi{font-size:32px;flex-shrink:0;line-height:1}
+.vt{font-size:16px;font-weight:900;margin-bottom:3px}
+.verdict.green .vt{color:var(--green)}.verdict.amber .vt{color:var(--amber)}.verdict.red .vt{color:var(--red)}
+.vs{font-size:12.5px;line-height:1.55}
+.verdict.green .vs{color:#2a7010}.verdict.amber .vs{color:#7a4800}.verdict.red .vs{color:#8b1010}
+
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r12);padding:15px;position:relative;overflow:hidden;transition:transform .15s}
+.mc:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.mc::before{content:"";position:absolute;top:0;left:0;right:0;height:2px}
+.mc.pos::before{background:linear-gradient(90deg,var(--green-bd),#8bc34a)}
+.mc.neg::before{background:linear-gradient(90deg,var(--red-bd),#f07070)}
+.mc.warn::before{background:linear-gradient(90deg,var(--amber-bd),var(--gold2))}
+.mc.gold::before{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.mc-l{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:0.7px;color:var(--muted);margin-bottom:7px}
+.mc-v{font-size:19px;font-weight:900;line-height:1}
+.mc.pos .mc-v{color:var(--green)}.mc.neg .mc-v{color:var(--red)}.mc.warn .mc-v{color:var(--amber)}.mc.gold .mc-v{color:var(--gold-dim)}
+.mc-note{font-size:10px;color:var(--muted);margin-top:5px}
+
+/* SCENARIOS */
+.scen-card{background:linear-gradient(160deg,var(--ink),var(--ink2));border-radius:var(--r16);border:1px solid rgba(201,151,26,0.2);padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden}
+.scen-card::before{content:"";position:absolute;top:-60px;right:-60px;width:240px;height:240px;background:radial-gradient(circle,rgba(201,151,26,0.08) 0%,transparent 60%)}
+.scen-title{font-size:14px;font-weight:800;color:var(--gold2);margin-bottom:4px;display:flex;align-items:center;gap:8px;position:relative}
+.scen-sub{font-size:12px;color:rgba(255,255,255,0.42);margin-bottom:18px;line-height:1.55;position:relative}
+.scen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;position:relative}
+.scen-item{background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.08);border-radius:var(--r12);padding:16px 14px;text-align:center;transition:all .2s}
+.scen-item.focus{background:linear-gradient(160deg,rgba(201,151,26,0.18),rgba(201,151,26,0.08));border-color:rgba(229,184,74,0.5);box-shadow:0 4px 20px rgba(201,151,26,0.2)}
+.scen-badge{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;padding:3px 9px;border-radius:10px;display:inline-block;margin-bottom:10px}
+.scen-item .scen-badge{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5)}
+.scen-item.focus .scen-badge{background:var(--gold);color:#fff}
+.scen-months{font-size:12px;color:rgba(255,255,255,0.55);font-weight:600;margin-bottom:6px}
+.scen-roi{font-size:26px;font-weight:900;color:#fff;line-height:1}
+.scen-item.focus .scen-roi{color:var(--gold3)}
+.scen-roi-lbl{font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px;text-transform:uppercase;letter-spacing:0.4px}
+.scen-foot{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);font-size:11.5px;color:rgba(255,255,255,0.45);line-height:1.6;position:relative}
+.scen-foot strong{color:var(--gold2)}
+
+/* FLOW */
+.flow-card{background:linear-gradient(160deg,#0d1424,#141d30);border-radius:var(--r16);border:1px solid rgba(255,255,255,0.07);padding:22px 24px;margin-bottom:14px}
+.flow-title{font-size:14px;font-weight:800;color:#fff;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.flow-sub{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:18px}
+.flow-rows{display:flex;flex-direction:column;gap:8px}
+.flow-row{display:flex;justify-content:space-between;align-items:center;padding:11px 15px;border-radius:var(--r8);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06)}
+.fr-lbl{font-size:12.5px;color:rgba(255,255,255,0.7);font-weight:600}
+.fr-note{font-size:10.5px;color:rgba(255,255,255,0.32);margin-top:2px;line-height:1.4}
+.fr-val{font-size:14px;font-weight:800;color:#fff;white-space:nowrap;margin-left:12px}
+.flow-row.out .fr-val{color:#f0a0a0}
+.flow-row.in{background:linear-gradient(135deg,rgba(61,148,32,0.18),rgba(61,148,32,0.08));border-color:rgba(61,148,32,0.35)}
+.flow-row.in .fr-lbl{color:#fff}
+.flow-row.in .fr-val{color:#8bd860;font-size:15px}
+.flow-row.gold{background:linear-gradient(135deg,rgba(201,151,26,0.15),rgba(201,151,26,0.06));border-color:rgba(201,151,26,0.3)}
+.flow-row.gold .fr-lbl{color:#fff}
+.flow-row.gold .fr-val{color:var(--gold3)}
+
+.rb{background:var(--surface);border:1px solid var(--border);border-radius:var(--r14);overflow:hidden;margin-bottom:12px}
+.rb-hd{padding:11px 18px;background:var(--ink2);display:flex;justify-content:space-between;align-items:center}
+.rb-hd-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;color:rgba(255,255,255,0.75)}
+.rb-hd-total{font-size:15px;font-weight:900;color:var(--gold2)}
+.rb-row{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px;transition:background .1s}
+.rb-row:last-child{border-bottom:none}
+.rb-row:hover{background:var(--surface2)}
+.rrl{color:var(--text2)}.rrv{font-weight:700;color:var(--text)}
+.rrd{font-size:10.5px;color:var(--muted);margin-left:8px}
+.rb-row.sub{background:var(--surface2)}
+.rb-row.sub .rrl{color:var(--text);font-weight:700}
+.rb-row.sub .rrv{color:var(--ink);font-size:14px;font-weight:900}
+.rb-row.total-pos{background:linear-gradient(135deg,#e0f5cc,#cceaa8)}
+.rb-row.total-pos .rrl{color:var(--green);font-weight:900;font-size:14px}
+.rb-row.total-pos .rrv{color:var(--green);font-size:20px;font-weight:900}
+.rb-row.total-neg{background:linear-gradient(135deg,var(--red-bg),#ffd4d4)}
+.rb-row.total-neg .rrl{color:var(--red);font-weight:900;font-size:14px}
+.rb-row.total-neg .rrv{color:var(--red);font-size:20px;font-weight:900}
+.bdg{font-size:11px;font-weight:800;padding:2px 9px;border-radius:10px}
+.bdg.pos{background:var(--green-bg);color:var(--green)}
+.bdg.neg{background:var(--red-bg);color:var(--red)}
+.bdg.warn{background:var(--amber-bg);color:var(--amber)}
+
+.bars-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r14);padding:18px;margin-bottom:12px}
+.bars-title{font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:0.7px;color:var(--muted);margin-bottom:14px}
+.rbar{margin-bottom:12px}.rbar:last-child{margin-bottom:0}
+.rbar-hd{display:flex;justify-content:space-between;margin-bottom:6px}
+.rbar-name{font-size:12px;font-weight:600;color:var(--text2)}
+.rbar-pct{font-size:13px;font-weight:900;color:var(--ink)}
+.rbar-track{height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;border:1px solid var(--border)}
+.rf{height:100%;border-radius:5px;transition:width .6s ease}
+.rf.gold{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.rf.green{background:linear-gradient(90deg,var(--green-bd),#8bc34a)}
+.rf.red{background:linear-gradient(90deg,var(--red-bd),#f07070)}
+.rf.navy{background:linear-gradient(90deg,var(--ink),#2d5a8e)}
+
+.res-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.btn-redo{padding:10px 18px;font-size:12.5px;border-radius:var(--r8);border:1.5px solid var(--border2);cursor:pointer;background:var(--surface);color:var(--text2);font-weight:600;font-family:inherit;transition:all .15s}
+.btn-redo:hover{border-color:var(--ink);color:var(--ink)}
+.btn-pdf{padding:10px 22px;font-size:12.5px;border-radius:var(--r8);border:none;cursor:pointer;background:var(--ink);color:#fff;font-weight:700;font-family:inherit;transition:all .15s}
+.btn-pdf:hover{background:var(--ink2)}
+
+footer{max-width:960px;margin:0 auto;padding:0 24px 40px;text-align:center;font-size:11px;color:var(--muted)}
+footer strong{color:var(--gold)}
+
+
+/* CAPITAL APORTADO HERO */
+.aporte-hero{background:linear-gradient(135deg,#0d1424,#162038);border:1px solid rgba(201,151,26,0.25);border-radius:var(--r14);padding:18px 22px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.aporte-lbl{font-size:13px;font-weight:800;color:#fff;margin-bottom:3px}
+.aporte-note{font-size:11px;color:rgba(255,255,255,0.45);line-height:1.45;max-width:380px}
+.aporte-val{font-size:26px;font-weight:900;color:var(--gold2);white-space:nowrap}
+
+/* INFO ROW */
+.rb-row.info-row{background:#faf8f3;border-top:1px dashed var(--border2)}
+.rb-row.info-row .rrl{color:var(--muted);font-size:12px}
+
+/* 2 RENTABILIDADES */
+.rent-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r16);padding:20px 22px;margin-bottom:12px}
+.rent-title{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.rent-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.rent-item{border:1.5px solid var(--border);border-radius:var(--r12);padding:16px;background:var(--surface2);text-align:center}
+.rent-item.main{border-color:var(--gold);background:linear-gradient(160deg,var(--gold-pale2),var(--gold-pale));box-shadow:0 2px 12px rgba(201,151,26,0.15)}
+.rent-tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.6px;padding:3px 9px;border-radius:10px;display:inline-block;margin-bottom:10px;background:var(--surface3);color:var(--muted)}
+.rent-item.main .rent-tag{background:var(--gold);color:#fff}
+.rent-name{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;line-height:1.3}
+.rent-val{font-size:30px;font-weight:900;color:var(--ink);line-height:1}
+.rent-item.main .rent-val{color:var(--gold-dim)}
+.rent-base{font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.4}
+.rent-foot{font-size:11.5px;color:var(--text2);line-height:1.6;padding-top:14px;border-top:1px solid var(--border)}
+.rent-foot strong{color:var(--ink)}
+@media(max-width:640px){.rent-grid{grid-template-columns:1fr}.aporte-hero{flex-direction:column;align-items:flex-start;gap:8px}.aporte-val{font-size:22px}}
+
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
+  @page{margin:12mm 10mm}
+  body{background:#fff!important}
+  .hero,.snav,.nav-row,.res-actions{display:none!important}
+  .topbar{position:static!important;box-shadow:none!important;border-radius:0}
+  .topbar .tb-pill{display:inline-block!important}
+  .sec{display:block!important}
+  .sec:not(#s4){display:none!important}
+  .page{padding:0!important;max-width:100%!important}
+  .card,.rb,.flow-card,.scen-card,.rent-card,.bars-card,.res-hero,.aporte-hero,.verdict,.mc{box-shadow:none!important;break-inside:avoid;page-break-inside:avoid}
+  .metrics-grid,.scen-grid,.rent-grid{break-inside:avoid;page-break-inside:avoid}
+  .res-hero,.flow-card,.scen-card,.aporte-hero,.rb-hd,.rb-row.total-pos,.rb-row.total-neg,.tb-pill,.en-num,.scen-badge,.bdg,.rent-item.main,.flow-row.in,.flow-row.gold{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
+@media(max-width:640px){.page{padding:14px 14px 60px}.tb-inner{padding:0 14px}.logo-img{height:34px}.tb-div,.tb-sub{display:none}.hero{padding:28px 16px 24px}.hero h1{font-size:22px}.g2,.g3{grid-template-columns:1fr}.metrics-grid{grid-template-columns:1fr 1fr}.scen-grid{grid-template-columns:1fr}.parc-grid{grid-template-columns:repeat(4,1fr)}.snav{display:none}.card-hd,.card-bd{padding:16px}.mode-toggle{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="tb-inner">
+    <img class="logo-img" src="data:image/png;base64,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" alt="Leilões Efetive">
+    <div class="tb-div"></div>
+    <div><div class="tb-title">Análise de Viabilidade</div><div class="tb-sub">Leilões Imobiliários · Efetive</div></div>
+    <div class="tb-pill">INVESTIDOR PRO</div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">Ferramenta exclusiva para investidores</div>
+    <h1>Descubra o lucro real<br>do seu <em>próximo arremate</em></h1>
+    <div class="hero-desc">Preencha os dados da operação e veja, de forma clara, quanto você lucra, quanto seu capital rende por mês e quando o dinheiro volta para o seu bolso.</div>
+  </div>
+</div>
+
+<div class="page">
+
+<div class="snav">
+  <div class="sn active" id="sn1" onclick="tryGoStep(1)"><div class="sn-c" id="snc1">1</div><div><div class="sn-l">1ª Etapa</div><div class="sn-s">Aquisição &amp; Custos</div></div></div>
+  <div class="sn" id="sn2" onclick="tryGoStep(2)"><div class="sn-c" id="snc2">2</div><div><div class="sn-l">2ª Etapa</div><div class="sn-s">Venda &amp; Documentação</div></div></div>
+  <div class="sn" id="sn3" onclick="tryGoStep(3)"><div class="sn-c" id="snc3">3</div><div><div class="sn-l">3ª Etapa</div><div class="sn-s">Pós-Venda</div></div></div>
+  <div class="sn" id="sn4" onclick="tryGoStep(4)"><div class="sn-c" id="snc4">4</div><div><div class="sn-l">Resultado</div><div class="sn-s">Seu lucro</div></div></div>
+</div>
+
+<!-- STEP 1 -->
+<div class="sec vis" id="s1">
+<div class="card">
+<div class="card-hd">
+  <div class="etapa-strip"><div class="en-num">1</div><div><div class="en-tag">1ª Etapa</div><div class="en-title">Aquisição &amp; Regularização</div><div class="en-sub">Tudo que você investe do arremate até o imóvel pronto para vender</div></div></div>
+</div>
+<div class="card-bd">
+  <div class="slbl">Identificação do imóvel</div>
+  <div class="g2"><div class="field" style="grid-column:1/-1"><label>Endereço / Identificação do imóvel</label><input type="text" id="imovel" placeholder="Ex: R. Antonio Medeiros da Costa, n 75, LT 102, Qd 04"></div></div>
+  <div class="g3">
+    <div class="field"><label>Data da análise</label><input type="date" id="data_analise"></div>
+    <div class="field"><label>Tipo de imóvel</label><select id="tipo"><option value="">Selecione...</option><option>Casa</option><option>Apartamento</option><option>Terreno</option><option>Sala comercial</option><option>Outro</option></select></div>
+    <div class="field"><label>Prazo até o capital voltar <span class="req">*</span></label><div class="iw"><input type="number" id="prazo" value="12" min="1" max="60" class="pr" oninput="calcLive()"><span class="sfx">meses</span></div><div class="fhint">Da arrematação até o dinheiro voltar ao seu bolso</div></div>
+  </div>
+  <div class="note blue">⏱️ <strong>Entenda o prazo:</strong> aqui você informa quantos meses leva da arrematação até o <strong>capital voltar ao seu bolso</strong> — ou seja, quando o processo é finalizado e o recurso da venda cai na conta. Não é só a data da venda, é o ciclo completo da operação.</div>
+
+  <div class="slbl">Forma de pagamento</div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn-av" onclick="setModo('avista')"><span class="mb-icon">💵</span><span class="mb-title">Compra à Vista</span><span class="mb-sub">Pagamento integral no ato da arrematação.</span></button>
+    <button class="mode-btn" id="btn-fin" onclick="setModo('financiado')"><span class="mb-icon">🏦</span><span class="mb-title">Compra Financiada</span><span class="mb-sub">Em parcelas, conforme simulação do banco.</span></button>
+  </div>
+
+  <div id="bloco-av">
+    <div class="g2">
+      <div class="field"><label>Valor de arrematação <span class="req">*</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="arrem" class="pl" placeholder="Ex: 32.244,57" min="0" oninput="calcLive()"></div></div>
+      <div class="field"><label>Valor de avaliação do leilão <span class="opt">(opcional)</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="aval" class="pl" placeholder="Ex: 80.000,00" min="0" oninput="calcLive()"></div><div class="fhint">Para mostrar o desconto que você conquistou</div></div>
+    </div>
+  </div>
+
+  <div id="bloco-fin" style="display:none">
+    <div class="fin-box">
+      <div class="fin-box-hd">🏦 Dados do Financiamento</div>
+      <div class="g2">
+        <div class="field"><label>Valor de arrematação <span class="req">*</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="arrem_f" class="pl" placeholder="Ex: 32.244,57" min="0" oninput="syncArrem()"></div></div>
+        <div class="field"><label>Valor de avaliação do leilão <span class="opt">(opcional)</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="aval_f" class="pl" placeholder="Ex: 80.000,00" min="0" oninput="syncAval()"></div></div>
+      </div>
+      <div class="note blue" style="margin-bottom:14px">💡 <strong>Simples assim:</strong> simule no banco, informe o valor da parcela mensal e escolha quantas parcelas você vai pagar até vender. Sem complicação com juros.</div>
+      <div class="g2">
+        <div class="field"><label>Entrada paga (do seu bolso) <span class="req">*</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="entrada_fin" class="pl" placeholder="Ex: 6.500,00" min="0" oninput="calcLive()"></div><div class="fhint">Valor que você deu de entrada na arrematação</div></div>
+        <div class="field"><label>Valor financiado pelo banco <span class="opt">(calculado)</span></label><div class="iw"><span class="pfx">R$</span><input type="text" id="financiado_show" class="pl" readonly placeholder="—"></div><div class="fhint">Arrematação menos a entrada</div></div>
+      </div>
+      <div class="g2">
+        <div class="field"><label>Valor da parcela mensal <span class="req">*</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="parc_v" class="pl" placeholder="Ex: 450,00" min="0" oninput="calcLive()"></div><div class="fhint">Conforme a simulação do banco</div></div>
+        <div class="field"><label>Total de parcelas até vender <span class="opt">(calculado)</span></label><div class="iw"><span class="pfx">R$</span><input type="text" id="parc_total_show" class="pl" readonly placeholder="—"></div></div>
+      </div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--text2);display:block;margin-bottom:10px">Quantas parcelas vai pagar até vender?</label>
+        <div class="parc-grid" id="parc-grid">
+          <div class="pi" onclick="selParc(1)"><span class="pi-n">1x</span><span class="pi-s">1 mês</span></div>
+          <div class="pi" onclick="selParc(2)"><span class="pi-n">2x</span><span class="pi-s">2 meses</span></div>
+          <div class="pi" onclick="selParc(3)"><span class="pi-n">3x</span><span class="pi-s">3 meses</span></div>
+          <div class="pi" onclick="selParc(6)"><span class="pi-n">6x</span><span class="pi-s">6 meses</span></div>
+          <div class="pi" onclick="selParc(9)"><span class="pi-n">9x</span><span class="pi-s">9 meses</span></div>
+          <div class="pi" onclick="selParc(12)"><span class="pi-n">12x</span><span class="pi-s">1 ano</span></div>
+          <div class="pi" onclick="selParc(24)"><span class="pi-n">24x</span><span class="pi-s">2 anos</span></div>
+          <div class="pi" id="pi-outro" onclick="selParcOutro()"><span class="pi-n">✏️</span><span class="pi-s">Outro</span></div>
+        </div>
+        <div id="parc-custom" style="display:none;margin-top:10px"><div class="field"><label>Número de parcelas (personalizado)</label><div class="iw"><input type="number" id="parc_n_c" class="pr" placeholder="Ex: 18" min="1" oninput="calcLive()"><span class="sfx">×</span></div></div></div>
+      </div>
+      <div class="g1" style="margin-top:14px"><div class="field"><label>Saldo devedor na data de venda <span class="opt">(opcional)</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="saldo_dev" class="pl" placeholder="Ex: 28.000,00" min="0" oninput="calcLive()"></div><div class="fhint">Quanto ainda deve ao banco quando vender. Será abatido da venda.</div></div></div>
+    </div>
+  </div>
+
+  <div class="slbl">Custos de regularização</div>
+  <div class="note gold">📋 Preencha <strong>apenas o que se aplica</strong> a este imóvel. Deixe em branco o que não houver.</div>
+  <div class="g2">
+    <div class="field"><label>Imposto e Registro (ITBI)</label><div class="iw"><span class="pfx">R$</span><input type="number" id="itbi" class="pl" placeholder="Ex: 9.500,00" min="0" oninput="calcLive()"></div><div class="fhint">Normalmente 2–3% do valor venal</div></div>
+    <div class="field"><label>Assessoria Efetive</label><div class="iw"><span class="pfx">R$</span><input type="number" id="assessoria" class="pl" placeholder="Ex: 10.000,00" min="0" oninput="calcLive()"></div></div>
+  </div>
+  <div class="g2">
+    <div class="field"><label>Reforma / Benfeitorias</label><div class="iw"><span class="pfx">R$</span><input type="number" id="reforma" class="pl" placeholder="Ex: 23.500,00" min="0" oninput="calcLive()"></div><div class="fhint">Estimativa após vistoria</div></div>
+    <div class="field"><label>IPTU</label><div class="iw"><span class="pfx">R$</span><input type="number" id="iptu" class="pl" placeholder="Ex: 1.500,00" min="0" oninput="calcLive()"></div></div>
+  </div>
+  <div class="g2">
+    <div class="field"><label>Condomínio</label><div class="iw"><span class="pfx">R$</span><input type="number" id="cond" class="pl" placeholder="0,00" min="0" oninput="calcLive()"></div><div class="fhint">Só se houver débito acumulado</div></div>
+    <div class="field"><label>Desocupação</label><div class="iw"><span class="pfx">R$</span><input type="number" id="desocup" class="pl" placeholder="Ex: 1.000,00" min="0" oninput="calcLive()"></div><div class="fhint">Só se houver ocupante irregular</div></div>
+  </div>
+
+  <div id="desc-box" style="display:none;margin-top:6px"><div style="background:var(--gold-pale);border:1px solid rgba(201,151,26,0.2);border-radius:var(--r10);padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;color:var(--gold-dim)">🎯 Desconto que você conquistou</span><span style="font-size:22px;font-weight:900;color:var(--gold)" id="desc-val">0%</span></div></div>
+
+  <div class="total-bar" style="margin-top:16px"><div><div class="tb-lbl">Total que você investe (1ª Etapa)</div><div class="tb-sub2" id="total1-note">Capital aportado na operação</div></div><div class="tb-val" id="total1-show">R$ 0</div></div>
+</div>
+<div class="nav-row"><button class="btn-fwd" onclick="goStep(2)">Próximo →</button></div>
+</div>
+</div>
+
+<!-- STEP 2 -->
+<div class="sec" id="s2">
+<div class="card">
+<div class="card-hd"><div class="etapa-strip"><div class="en-num">2</div><div><div class="en-tag">2ª Etapa</div><div class="en-title">Venda do Imóvel &amp; Documentação</div><div class="en-sub">Quanto você recebe e o custo de documentação, quando houver</div></div></div></div>
+<div class="card-bd">
+  <div class="slbl">Quanto você vai receber</div>
+  <div class="g2">
+    <div class="field"><label>Valor esperado de venda <span class="req">*</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="venda" class="pl" placeholder="Ex: 117.000,00" min="0" oninput="calcLive()"></div></div>
+    <div class="field"><label>Entrada do comprador <span class="opt">(%)</span></label><div class="iw"><input type="number" id="ent_comp_pct" value="20" min="0" max="100" class="pr" oninput="calcLive()"><span class="sfx">%</span></div></div>
+  </div>
+
+  <div class="slbl">Documentação do cliente</div>
+  <div class="note teal">
+    🏦 <strong>Boa notícia: esse valor não sai do seu bolso na hora.</strong><br><br>
+    Quando o comprador financia pela Caixa com subsídio do governo, o processo é assim:<br><br>
+    <strong>1.</strong> O comprador assina os formulários da Caixa e solicita o recurso.<br>
+    <strong>2.</strong> A Caixa libera o recurso quando o subsídio está disponível.<br>
+    <strong>3.</strong> Só então você paga a documentação — já com o dinheiro da venda chegando.<br>
+    <strong>4.</strong> Em até <strong>~60 dias</strong> após o recurso cair, você recebe todo o retorno.<br><br>
+    <strong>Resumindo:</strong> você nunca tira esse valor do próprio caixa. Por isso mostramos seu retorno <em>com e sem</em> esse custo — para você enxergar o quanto realmente imobilizou.
+  </div>
+
+  <div class="sw-row" id="doc-sw" onclick="toggleDoc()"><div><div class="sw-t">Este imóvel terá custo com documentação do cliente?</div><div class="sw-s" id="doc-sw-sub">Ative só se o investidor arcará com a documentação do comprador</div></div><div class="sw-knob" id="doc-knob"></div></div>
+
+  <div id="doc-campos" style="display:none">
+    <div class="doc-box">
+      <div class="doc-hd">📄 Documentação do Cliente</div>
+      <div class="g2">
+        <div class="field"><label>Valor da documentação</label><div class="iw"><span class="pfx">R$</span><input type="number" id="doc_v" class="pl" placeholder="Ex: 9.000,00" min="0" oninput="calcLive()"></div><div class="fhint">Escritura, certidões, taxas cartoriais</div></div>
+        <div class="field"><label>Descrição <span class="opt">(opcional)</span></label><input type="text" id="doc_desc" placeholder="Ex: Escritura + certidões"></div>
+      </div>
+      <div class="note green" style="margin-top:4px;margin-bottom:0">✅ Como esse valor só é pago após o recurso cair, ele <strong>não afeta seu caixa durante a operação</strong>.</div>
+    </div>
+  </div>
+</div>
+<div class="nav-row"><button class="btn-back" onclick="goStep(1)">← Voltar</button><button class="btn-fwd" onclick="goStep(3)">Próximo →</button></div>
+</div>
+</div>
+
+<!-- STEP 3 -->
+<div class="sec" id="s3">
+<div class="card">
+<div class="card-hd"><div class="etapa-strip"><div class="en-num">3</div><div><div class="en-tag">3ª Etapa</div><div class="en-title">Pós-Venda</div><div class="en-sub">Custos pagos depois que o recurso cai — não saem do seu bolso antes</div></div></div></div>
+<div class="card-bd">
+  <div class="note teal">🏦 <strong>Tranquilo:</strong> corretor e ganho de capital são pagos <strong>só depois que o recurso da Caixa é liberado</strong>. Em casos raros de cartório demorado, o ganho de capital pode ser antecipado — mas é a exceção, não a regra.</div>
+
+  <div class="slbl">Corretor de venda</div>
+  <div class="tg-wrap" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    <button type="button" class="tgb-corr active" id="corr-mode-pct" onclick="setCorrMode('pct')" style="padding:8px 16px;font-size:12px;border-radius:20px;border:1.5px solid var(--border2);cursor:pointer;background:var(--surface);color:var(--muted);font-weight:600;font-family:inherit">Calcular por percentual (%)</button>
+    <button type="button" class="tgb-corr" id="corr-mode-val" onclick="setCorrMode('val')" style="padding:8px 16px;font-size:12px;border-radius:20px;border:1.5px solid var(--border2);cursor:pointer;background:var(--surface);color:var(--muted);font-weight:600;font-family:inherit">Informar valor (R$)</button>
+  </div>
+  <div class="g2" id="corr-pct-block">
+    <div class="field"><label>Percentual do corretor</label><div class="iw"><input type="number" id="corr_pct" value="5" min="0" max="15" step="0.1" class="pr" oninput="calcLive()"><span class="sfx">%</span></div><div class="fhint">Pago sobre a venda, após receber o recurso</div></div>
+    <div class="field"><label>Valor do corretor <span class="opt">(calculado)</span></label><div class="iw"><span class="pfx">R$</span><input type="text" id="corr_v" class="pl" readonly placeholder="calculado"></div></div>
+  </div>
+  <div class="g1" id="corr-val-block" style="display:none">
+    <div class="field"><label>Valor do corretor <span class="req">*</span></label><div class="iw"><span class="pfx">R$</span><input type="number" id="corr_val_manual" class="pl" placeholder="Ex: 6.250,00" min="0" oninput="calcLive()"></div><div class="fhint">Informe o valor exato combinado com o corretor</div></div>
+  </div>
+
+  <div class="slbl">Imposto sobre ganho de capital</div>
+  <div class="g2">
+    <div class="field"><label>Enquadramento do investidor</label><select id="gc_tipo" onchange="toggleGcManual();calcLive()"><option value="nenhum">Isento / Não se aplica</option><option value="pf">Pessoa Física — 15% sobre o lucro</option><option value="pj">Pessoa Jurídica — ~6% sobre o lucro</option><option value="manual">Informar valor manualmente</option></select></div>
+    <div class="field" id="gc-manual" style="display:none"><label>Valor do ganho de capital</label><div class="iw"><span class="pfx">R$</span><input type="number" id="gc_m" class="pl" placeholder="Ex: 5.846,00" min="0" oninput="calcLive()"></div></div>
+    <div class="field" id="gc-calc"><label>Imposto estimado <span class="opt">(calculado)</span></label><div class="iw"><span class="pfx">R$</span><input type="text" id="gc_v" class="pl" readonly placeholder="—"></div></div>
+  </div>
+
+  <div class="total-bar"><div><div class="tb-lbl">Total Pós-Venda</div><div class="tb-sub2" id="total3-note">Corretor + Ganho de capital</div></div><div class="tb-val" id="total3-show">R$ 0</div></div>
+</div>
+<div class="nav-row"><button class="btn-back" onclick="goStep(2)">← Voltar</button><button class="btn-calc" onclick="goStep(4)">Ver Meu Lucro →</button></div>
+</div>
+</div>
+
+<!-- STEP 4 -->
+<div class="sec" id="s4">
+  <div id="result-area"></div>
+  <div class="res-actions"><button class="btn-redo" onclick="goStep(1)">↺ Nova análise</button><button class="btn-pdf" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button></div>
+</div>
+
+</div>
+
+<footer><strong>Leilões Efetive</strong> · CRECI/RN 6450-J · Maior ecossistema de leilões imobiliários do RN · +700 arremates realizados</footer>
+
+<script>
+let modo="avista", parcN=0, parcCustom=false, docAtivo=false, step=1, corrMode="pct";
+function setCorrMode(m){corrMode=m;document.getElementById("corr-mode-pct").classList.toggle("active",m==="pct");document.getElementById("corr-mode-val").classList.toggle("active",m==="val");document.getElementById("corr-mode-pct").style.background=m==="pct"?"var(--gold)":"var(--surface)";document.getElementById("corr-mode-pct").style.color=m==="pct"?"#fff":"var(--muted)";document.getElementById("corr-mode-pct").style.borderColor=m==="pct"?"var(--gold)":"var(--border2)";document.getElementById("corr-mode-val").style.background=m==="val"?"var(--gold)":"var(--surface)";document.getElementById("corr-mode-val").style.color=m==="val"?"#fff":"var(--muted)";document.getElementById("corr-mode-val").style.borderColor=m==="val"?"var(--gold)":"var(--border2)";document.getElementById("corr-pct-block").style.display=m==="pct"?"grid":"none";document.getElementById("corr-val-block").style.display=m==="val"?"block":"none";calcLive();}
+
+function v(id){return parseFloat(document.getElementById(id)?.value)||0;}
+function sv(id){return document.getElementById(id)?.value||"";}
+function fmt(n){return"R$ "+Math.abs(Math.round(n)).toLocaleString("pt-BR");}
+function fmtS(n){return(n<0?"- R$ ":"R$ ")+Math.abs(Math.round(n)).toLocaleString("pt-BR");}
+function fP(n,d){d=(d===undefined)?2:d;return(Math.abs(n)>=100?n.toFixed(0):n.toFixed(d))+"%";}
+function setTxt(id,val){var e=document.getElementById(id);if(e)e.value=val;}
+
+function setModo(m){modo=m;document.getElementById("btn-av").classList.toggle("active",m==="avista");document.getElementById("btn-fin").classList.toggle("active",m==="financiado");document.getElementById("bloco-av").style.display=m==="avista"?"block":"none";document.getElementById("bloco-fin").style.display=m==="financiado"?"block":"none";calcLive();}
+function syncArrem(){document.getElementById("arrem").value=document.getElementById("arrem_f").value;calcLive();}
+function syncAval(){document.getElementById("aval").value=document.getElementById("aval_f").value;calcLive();}
+
+function selParc(n){parcN=n;parcCustom=false;document.getElementById("parc-custom").style.display="none";document.querySelectorAll(".pi").forEach(function(el){el.classList.remove("sel");});document.querySelectorAll("#parc-grid .pi").forEach(function(el){if(el.querySelector(".pi-n").textContent===n+"x")el.classList.add("sel");});calcLive();}
+function selParcOutro(){parcCustom=true;document.querySelectorAll(".pi").forEach(function(el){el.classList.remove("sel");});document.getElementById("pi-outro").classList.add("sel");document.getElementById("parc-custom").style.display="block";document.getElementById("parc_n_c").focus();calcLive();}
+
+function toggleDoc(){docAtivo=!docAtivo;document.getElementById("doc-sw").classList.toggle("on",docAtivo);document.getElementById("doc-sw-sub").textContent=docAtivo?"Ativado — pago após liberação do recurso da Caixa":"Ative só se o investidor arcará com a documentação do comprador";document.getElementById("doc-campos").style.display=docAtivo?"block":"none";calcLive();}
+function toggleGcManual(){var m=sv("gc_tipo");document.getElementById("gc-manual").style.display=m==="manual"?"block":"none";document.getElementById("gc-calc").style.display=m==="manual"?"none":"block";}
+
+function calcLive(){
+  var arrem=v("arrem"),aval=v("aval"),venda=v("venda");
+  var prazo=Math.max(1,Math.round(v("prazo")||12));
+  if(aval>0&&arrem>0){var dd=((aval-arrem)/aval)*100;document.getElementById("desc-box").style.display="block";document.getElementById("desc-val").textContent=fP(Math.max(0,dd));}else document.getElementById("desc-box").style.display="none";
+
+  // Parcelas (somente financiado)
+  var pN=0;if(modo==="financiado")pN=parcCustom?Math.round(v("parc_n_c")):parcN;
+  var pV=modo==="financiado"?v("parc_v"):0;var pTotal=pV*pN;
+  setTxt("parc_total_show",pTotal>0?fmt(pTotal):"");
+
+  // Custos de regularizacao (saem do bolso em ambos os casos)
+  var reg=v("itbi")+v("assessoria")+v("reforma")+v("iptu")+v("cond")+v("desocup");
+  var saldo_dev=modo==="financiado"?v("saldo_dev"):0;
+
+  // Entrada do financiamento (do bolso) e valor financiado pelo banco
+  var entrada=modo==="financiado"?v("entrada_fin"):0;
+  var valor_financiado=Math.max(0,arrem-entrada);
+  if(modo==="financiado")setTxt("financiado_show",arrem>0?fmt(valor_financiado):"");
+
+  // ===== CAPITAL APORTADO (do bolso na 1a etapa) =====
+  // A VISTA: arrematacao + regularizacao
+  // FINANCIADO: entrada paga + parcelas pagas + regularizacao (o valor financiado e do banco, NAO sai do bolso)
+  var aporte = (modo==="financiado") ? (entrada+pTotal+reg) : (arrem+reg);
+
+  document.getElementById("total1-show").textContent=fmt(aporte);
+  if(arrem>0&&venda>0){
+    if(modo==="financiado")
+      document.getElementById("total1-note").textContent="Do seu bolso: entrada + parcelas + regularizacao";
+    else
+      document.getElementById("total1-note").textContent="Capital aportado na operacao";
+  }
+
+  // 2a etapa
+  var c_doc=docAtivo?v("doc_v"):0;
+
+  // 3a etapa - corretor: por percentual OU valor manual
+  var c_corr;
+  if(corrMode==="val"){c_corr=v("corr_val_manual");}
+  else{c_corr=venda*(v("corr_pct")/100);setTxt("corr_v",c_corr>0?fmt(c_corr):"");}
+
+  // Lucro antes do imposto: receita menos tudo que sai (incl. quitacao do saldo devedor no financiado)
+  var lucro_antes_gc = venda - saldo_dev - aporte - c_corr - c_doc;
+  var gc_tipo=sv("gc_tipo");var c_gc=0;
+  if(gc_tipo==="pf")c_gc=Math.max(0,lucro_antes_gc*0.15);
+  else if(gc_tipo==="pj")c_gc=Math.max(0,lucro_antes_gc*0.06);
+  else if(gc_tipo==="manual")c_gc=v("gc_m");
+  setTxt("gc_v",c_gc>0?fmt(c_gc):"R$ 0");
+  var total_pv=c_corr+c_gc;
+  document.getElementById("total3-show").textContent=fmt(total_pv);
+  document.getElementById("total3-note").textContent="Corretor "+fmt(c_corr)+(c_gc>0?" + Imposto "+fmt(c_gc):"")+" - pagos com o dinheiro da venda";
+
+  // ===== LUCRO LIQUIDO =====
+  var retorno = lucro_antes_gc - c_gc;
+  var retorno_sem_doc = retorno + c_doc;
+
+  // ===== 2 RENTABILIDADES =====
+  // 1) Sobre o capital aportado (do bolso na 1a etapa) - a real
+  var roi_aportado = aporte>0?(retorno/aporte)*100:0;
+  // 2) Incluindo custos de venda (corretagem + ganho de capital) na base
+  var base_total = aporte + c_corr + c_gc;
+  var roi_total = base_total>0?(retorno/base_total)*100:0;
+
+  var roi_mensal=prazo>0?(roi_aportado/prazo):0;
+  var roi_anual=roi_mensal*12;
+
+  window._res={arrem,venda,prazo,modo,pN,pV,pTotal,saldo_dev,c_doc,reg,entrada,valor_financiado,
+    c_itbi:v("itbi"),c_assess:v("assessoria"),c_reforma:v("reforma"),c_iptu:v("iptu"),c_cond:v("cond"),c_desocup:v("desocup"),
+    aporte,total_pv,c_corr,corrMode,corr_pct:v("corr_pct"),c_gc,gc_tipo,
+    retorno_sem_doc,retorno,roi_aportado,roi_total,base_total,roi_mensal,roi_anual};
+}
+
+function renderResult(){
+  calcLive();
+  var d=window._res||{};
+  var area=document.getElementById("result-area");
+  var imovel=sv("imovel")||"Imovel nao identificado";
+  var data=sv("data_analise")||(new Date().toLocaleDateString("pt-BR"));
+  var tipo=sv("tipo")||"";
+  if(!d.arrem||!d.venda){area.innerHTML='<div class="card"><div class="card-bd"><div class="note gold">\u26a0\ufe0f Preencha o <strong>valor de arrematacao</strong> e o <strong>valor de venda esperado</strong> para ver o resultado.</div></div></div>';return;}
+
+  var vc="green",vi="\ud83c\udf89",vt="Excelente oportunidade - vale a pena arrematar!",vs="Operacao com retorno positivo e margem saudavel. Um otimo negocio para o seu capital.";
+  if(d.retorno<0){vc="red";vi="\ud83d\udeab";vt="Atencao: operacao no vermelho";vs="Do jeito que esta, os custos superam a receita. Vale renegociar o lance ou os custos antes de seguir.";}
+  else if(d.roi_aportado<15){vc="amber";vi="\u26a0\ufe0f";vt="Margem apertada - da para melhorar";vs="O retorno esta abaixo do ideal. Uma boa negociacao no preco ou nos custos pode transformar essa operacao.";}
+
+  var mc=function(x){return x>0?"pos":x<0?"neg":"gold";};
+  var rw=function(l,val,note){return(val&&val>0)?'<div class="rb-row"><span class="rrl">'+l+'</span><div style="display:flex;align-items:center;gap:8px">'+(note?'<span class="rrd">'+note+'</span>':"")+'<span class="rrv">'+fmt(val)+'</span></div></div>':"";};
+  var bdg=function(x,warn){var cl=x<0?"neg":x<warn?"warn":"pos";return'<span class="bdg '+cl+'">'+fP(x)+'</span>';};
+  var gcLbl={nenhum:"Isento",pf:"PF 15%",pj:"PJ ~6%",manual:"Manual"}[d.gc_tipo];
+  var modoLbl=d.modo==="financiado"?"Financiado":"A Vista";
+
+  // 3 cenarios
+  var P=d.prazo;
+  var mRapido=Math.max(1,Math.round(P*0.6));
+  var mBase=P;
+  var mLento=Math.round(P*1.5);
+  if(mRapido>=mBase)mRapido=Math.max(1,mBase-1);
+  if(mLento<=mBase)mLento=mBase+2;
+  var roiRapido=d.roi_aportado/mRapido;
+  var roiBase=d.roi_aportado/mBase;
+  var roiLento=d.roi_aportado/mLento;
+
+  var mObra=Math.max(1,Math.round(P*0.4));
+  var mAssina=Math.max(mObra+1,Math.round(P*0.7));
+  var mRecurso=P;
+
+  var html="";
+  // HEADER
+  html+='<div class="res-hero"><div class="rh-tag">Relatorio de Viabilidade \u00b7 Leiloes Efetive</div><div class="rh-imovel">\ud83c\udfe0 '+imovel+'</div><div class="rh-meta"><div class="rh-meta-item">\ud83d\udcc5 <strong>'+data+'</strong></div>'+(tipo?'<div class="rh-meta-item">\ud83c\udfd7\ufe0f <strong>'+tipo+'</strong></div>':"")+'<div class="rh-meta-item">\ud83d\udcb3 <strong>'+modoLbl+'</strong></div></div></div>';
+  // VEREDICTO
+  html+='<div class="verdict '+vc+'"><div class="vi">'+vi+'</div><div><div class="vt">'+vt+'</div><div class="vs">'+vs+'</div></div></div>';
+
+  // CAPITAL APORTADO DESTAQUE
+  html+='<div class="aporte-hero"><div class="aporte-left"><div class="aporte-lbl">\ud83d\udcb0 Capital que voce realmente tira do bolso</div>'+(d.modo==="financiado"?'<div class="aporte-note">No financiamento, o valor da arrematacao e do banco - nao entra como aporte seu</div>':'<div class="aporte-note">Soma de tudo que voce investe na operacao</div>')+'</div><div class="aporte-val">'+fmt(d.aporte)+'</div></div>';
+
+  // METRICAS
+  html+='<div class="metrics-grid">';
+  html+='<div class="mc '+mc(d.retorno)+'"><div class="mc-l">Seu lucro liquido</div><div class="mc-v">'+fmtS(d.retorno)+'</div><div class="mc-note">Dinheiro no seu bolso</div></div>';
+  html+='<div class="mc '+mc(d.roi_aportado)+'"><div class="mc-l">Retorno sobre o capital aportado</div><div class="mc-v">'+fP(d.roi_aportado)+'</div><div class="mc-note">ROI real (sobre o que saiu do bolso)</div></div>';
+  html+='<div class="mc '+mc(d.roi_mensal)+'"><div class="mc-l">Rendimento por mes</div><div class="mc-v">'+fP(d.roi_mensal)+'</div><div class="mc-note">A cada mes investido</div></div>';
+  html+='<div class="mc '+mc(d.roi_anual)+'"><div class="mc-l">Rendimento ao ano</div><div class="mc-v">'+fP(d.roi_anual)+'</div><div class="mc-note">Equivalente anual</div></div>';
+  html+='</div>';
+
+  // 3 CENARIOS
+  if(d.retorno>0){
+    html+='<div class="scen-card"><div class="scen-title">\u23f1\ufe0f Quanto antes voce finaliza, mais seu dinheiro rende</div>';
+    html+='<div class="scen-sub">O lucro total e sempre <strong style="color:#fff">'+fmtS(d.retorno)+'</strong>. O que muda e a velocidade: terminar mais rapido faz o rendimento mensal disparar. Foque no cenario planejado, mas saiba que da para acelerar.</div>';
+    html+='<div class="scen-grid">';
+    html+='<div class="scen-item"><div class="scen-badge">Acelerado</div><div class="scen-months">em '+mRapido+' meses</div><div class="scen-roi">'+fP(roiRapido)+'</div><div class="scen-roi-lbl">por mes</div></div>';
+    html+='<div class="scen-item focus"><div class="scen-badge">\u2605 Planejado</div><div class="scen-months">em '+mBase+' meses</div><div class="scen-roi">'+fP(roiBase)+'</div><div class="scen-roi-lbl">por mes</div></div>';
+    html+='<div class="scen-item"><div class="scen-badge">Estendido</div><div class="scen-months">em '+mLento+' meses</div><div class="scen-roi">'+fP(roiLento)+'</div><div class="scen-roi-lbl">por mes</div></div>';
+    html+='</div>';
+    html+='<div class="scen-foot">\ud83d\udca1 <strong>Trabalhe com o cenario planejado de '+mBase+' meses</strong> ('+fP(roiBase)+' ao mes). Se a equipe finalizar em '+mRapido+' meses, seu rendimento sobe para '+fP(roiRapido)+' ao mes. O prazo pode variar - e em varios casos a rentabilidade fica ainda maior.</div>';
+    html+='</div>';
+  }
+
+  // FLUXO DE CAIXA
+  html+='<div class="flow-card"><div class="flow-title">\ud83d\udcb0 A jornada do seu dinheiro</div><div class="flow-sub">Da arrematacao ate o capital voltar ao seu bolso</div><div class="flow-rows">';
+  if(d.modo==="financiado"){
+    if(d.entrada>0)html+='<div class="flow-row out"><div><div class="fr-lbl">Dia 0 - Entrada da arrematacao</div><div class="fr-note">Voce paga a entrada; o banco financia '+fmt(d.valor_financiado)+'</div></div><div class="fr-val">- '+fmt(d.entrada)+'</div></div>';
+    else html+='<div class="flow-row out"><div><div class="fr-lbl">Dia 0 - Inicio do financiamento</div><div class="fr-note">O banco financia '+fmt(d.valor_financiado)+' - nao sai do seu bolso</div></div><div class="fr-val">financiado</div></div>';
+    if(d.pTotal>0)html+='<div class="flow-row out"><div><div class="fr-lbl">Parcelas do financiamento ('+d.pN+'x '+fmt(d.pV)+')</div><div class="fr-note">Pagas mes a mes ate a venda</div></div><div class="fr-val">- '+fmt(d.pTotal)+'</div></div>';
+    if(d.reg>0)html+='<div class="flow-row out"><div><div class="fr-lbl">Meses 1-'+mObra+' - Regularizacao e reforma</div><div class="fr-note">ITBI, assessoria, reforma, desocupacao...</div></div><div class="fr-val">- '+fmt(d.reg)+'</div></div>';
+    html+='<div class="flow-row gold"><div><div class="fr-lbl">Mes ~'+mAssina+' - Comprador assina com a Caixa</div><div class="fr-note">Solicita o recurso e o subsidio do governo</div></div><div class="fr-val">'+fmt(d.venda)+'</div></div>';
+    if(d.saldo_dev>0)html+='<div class="flow-row out"><div><div class="fr-lbl">Quitacao do saldo devedor</div><div class="fr-note">O financiamento e quitado com o dinheiro da venda</div></div><div class="fr-val">- '+fmt(d.saldo_dev)+'</div></div>';
+  } else {
+    html+='<div class="flow-row out"><div><div class="fr-lbl">Dia 0 - Arrematacao</div><div class="fr-note">Voce investe o valor do lance</div></div><div class="fr-val">- '+fmt(d.arrem)+'</div></div>';
+    if(d.reg>0)html+='<div class="flow-row out"><div><div class="fr-lbl">Meses 1-'+mObra+' - Regularizacao e reforma</div><div class="fr-note">ITBI, assessoria, reforma, desocupacao...</div></div><div class="fr-val">- '+fmt(d.reg)+'</div></div>';
+    html+='<div class="flow-row gold"><div><div class="fr-lbl">Mes ~'+mAssina+' - Comprador assina com a Caixa</div><div class="fr-note">Solicita o recurso e o subsidio do governo</div></div><div class="fr-val">'+fmt(d.venda)+'</div></div>';
+  }
+  if(d.c_doc>0)html+='<div class="flow-row out"><div><div class="fr-lbl">Documentacao do cliente</div><div class="fr-note">Paga so quando o recurso esta liberando - nunca do seu caixa</div></div><div class="fr-val">- '+fmt(d.c_doc)+'</div></div>';
+  html+='<div class="flow-row in"><div><div class="fr-lbl">Mes ~'+mRecurso+' - Capital de volta no seu bolso \ud83c\udf89</div><div class="fr-note">Recurso liberado pela Caixa. Corretor e imposto pagos aqui.</div></div><div class="fr-val">+ '+fmtS(d.retorno)+'</div></div>';
+  html+='</div></div>';
+
+  // ETAPA 1 - CAPITAL APORTADO
+  html+='<div class="rb"><div class="rb-hd"><div class="rb-hd-title">1a Etapa - Capital aportado (do seu bolso)</div><div class="rb-hd-total">'+fmt(d.aporte)+'</div></div>';
+  if(d.modo==="financiado"){
+    if(d.entrada>0)html+='<div class="rb-row"><span class="rrl">Entrada paga (do seu bolso)</span><span class="rrv">'+fmt(d.entrada)+'</span></div>';
+    if(d.pTotal>0)html+='<div class="rb-row"><span class="rrl">Parcelas do financiamento ('+d.pN+'\u00d7 '+fmt(d.pV)+')</span><span class="rrv">'+fmt(d.pTotal)+'</span></div>';
+  } else {
+    html+=rw("Arrematacao",d.arrem);
+  }
+  html+=rw("Imposto e Registro (ITBI)",d.c_itbi)+rw("Assessoria Efetive",d.c_assess)+rw("Reforma / Benfeitorias",d.c_reforma)+rw("IPTU",d.c_iptu)+rw("Condominio",d.c_cond)+rw("Desocupacao",d.c_desocup);
+  html+='<div class="rb-row sub"><span class="rrl">Total aportado do seu bolso</span><span class="rrv">'+fmt(d.aporte)+'</span></div>';
+  if(d.modo==="financiado")html+='<div class="rb-row info-row"><span class="rrl">\u2139\ufe0f Valor financiado pelo banco (nao sai do seu bolso)</span><span class="rrv" style="color:var(--muted);font-weight:600">'+fmt(d.valor_financiado)+'</span></div>';
+  html+='</div>';
+
+  // ETAPA 2
+  html+='<div class="rb"><div class="rb-hd"><div class="rb-hd-title">2a Etapa - Venda do Imovel</div></div>';
+  html+='<div class="rb-row"><span class="rrl">Valor de venda</span><span class="rrv">'+fmt(d.venda)+'</span></div>';
+  if(d.saldo_dev>0)html+='<div class="rb-row"><span class="rrl">(-) Quitacao do saldo devedor <span class="rrd">paga o financiamento</span></span><span class="rrv" style="color:var(--red)">- '+fmt(d.saldo_dev)+'</span></div>';
+  if(d.c_doc>0)html+='<div class="rb-row"><span class="rrl">Documentacao do cliente <span class="rrd">paga apos o recurso</span></span><span class="rrv">'+fmt(d.c_doc)+'</span></div>';
+  html+='</div>';
+
+  // POS-VENDA
+  html+='<div class="rb"><div class="rb-hd"><div class="rb-hd-title">Pos-Venda - pagos com o dinheiro da venda</div></div>';
+  if(d.c_gc>0)html+='<div class="rb-row"><span class="rrl">Ganho de capital ('+gcLbl+')</span><span class="rrv">'+fmt(d.c_gc)+'</span></div>';
+  var corrLabel=d.corrMode==="val"?"Corretor (valor informado)":("Corretor "+d.corr_pct+"% sobre a venda");
+  html+='<div class="rb-row"><span class="rrl">'+corrLabel+'</span><span class="rrv">'+fmt(d.c_corr)+'</span></div>';
+  html+='<div class="rb-row sub"><span class="rrl">Total pos-venda</span><span class="rrv">'+fmt(d.total_pv)+'</span></div></div>';
+
+  // LUCRO LIQUIDO
+  html+='<div class="rb"><div class="rb-hd"><div class="rb-hd-title">Resultado Final</div></div>';
+  html+='<div class="rb-row '+(d.retorno>=0?"total-pos":"total-neg")+'"><span class="rrl">Seu lucro liquido</span><span class="rrv">'+fmtS(d.retorno)+'</span></div></div>';
+
+  // ===== 2 RENTABILIDADES =====
+  html+='<div class="rent-card"><div class="rent-title">\ud83d\udcca As duas rentabilidades da sua operacao</div>';
+  html+='<div class="rent-grid">';
+  html+='<div class="rent-item main"><div class="rent-tag">\u2605 A que importa</div><div class="rent-name">Retorno sobre o capital aportado</div><div class="rent-val">'+fP(d.roi_aportado)+'</div><div class="rent-base">sobre '+fmt(d.aporte)+' que saiu do seu bolso</div></div>';
+  html+='<div class="rent-item"><div class="rent-tag">Visao completa</div><div class="rent-name">Retorno incluindo custos de venda</div><div class="rent-val">'+fP(d.roi_total)+'</div><div class="rent-base">sobre '+fmt(d.base_total)+' (aporte + corretor + imposto)</div></div>';
+  html+='</div>';
+  html+='<div class="rent-foot">\ud83d\udca1 <strong>Por que duas?</strong> A corretagem e o ganho de capital sao pagos com o dinheiro da venda - voce nao tira do bolso. Por isso a <strong>rentabilidade sobre o capital aportado</strong> e a que reflete o retorno real do dinheiro que voce investiu'+(d.modo==="financiado"?'. Como a arrematacao foi financiada pelo banco, ela tambem nao entra como aporte seu.':'.')+'</div>';
+  html+='</div>';
+
+  // BARRAS
+  html+='<div class="bars-card"><div class="bars-title">Seus indicadores</div>';
+  html+='<div class="rbar"><div class="rbar-hd"><span class="rbar-name">Rendimento por mes</span><span class="rbar-pct">'+fP(Math.max(0,d.roi_mensal))+'</span></div><div class="rbar-track"><div class="rf '+(d.roi_mensal<0?"red":d.roi_mensal<2?"gold":"green")+'" style="width:'+Math.min(100,Math.max(0,d.roi_mensal*15))+'%"></div></div></div>';
+  html+='<div class="rbar"><div class="rbar-hd"><span class="rbar-name">Retorno sobre o capital aportado (ROI real)</span><span class="rbar-pct">'+fP(Math.max(0,d.roi_aportado))+'</span></div><div class="rbar-track"><div class="rf '+(d.roi_aportado<0?"red":d.roi_aportado<15?"gold":"green")+'" style="width:'+Math.min(100,Math.max(0,d.roi_aportado/0.8))+'%"></div></div></div>';
+  html+='<div class="rbar"><div class="rbar-hd"><span class="rbar-name">Rendimento ao ano</span><span class="rbar-pct">'+fP(Math.max(0,d.roi_anual))+'</span></div><div class="rbar-track"><div class="rf gold" style="width:'+Math.min(100,Math.max(0,d.roi_anual/1.5))+'%"></div></div></div>';
+  html+='</div>';
+
+  area.innerHTML=html;
+}
+
+function tryGoStep(n){if(n<=step+1)goStep(n);}
+function goStep(n){step=n;document.querySelectorAll(".sec").forEach(function(s,i){s.classList.toggle("vis",i+1===n);});for(var i=1;i<=4;i++){var sn=document.getElementById("sn"+i);var sc=document.getElementById("snc"+i);if(!sn||!sc)continue;sn.className="sn"+(i===n?" active":i<n?" done":"");sc.textContent=i<n?"✓":i;}if(n===4)renderResult();window.scrollTo({top:0,behavior:"smooth"});}
+
+document.getElementById("data_analise").value=new Date().toISOString().split("T")[0];
+calcLive();
+</script>
+</body>
+</html>
